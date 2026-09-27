@@ -1,0 +1,18 @@
+# One-click deploy on Render: New > Blueprint > pick this repo.
+services:
+  - type: web
+    name: spy-levels
+    runtime: python
+    plan: starter            # always-on; the free plan sleeps after 15 idle minutes and stops refreshing
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.server
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      - key: APP_PASSWORD
+        sync: false          # Render asks you for a value on first deploy
+      - key: NTFY_TOPIC
+        sync: false
+      - key: DATA_PROVIDER
+        value: yahoo

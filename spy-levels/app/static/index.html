@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>SPY Levels</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%2314181b%27/%3E%3Cpath d=%27M5 22l7-7 5 4 10-10%27 stroke=%27%232a78d6%27 stroke-width=%273%27 fill=%27none%27/%3E%3Cpath d=%27M5 25h22%27 stroke=%27%231b8a55%27 stroke-width=%272%27 stroke-dasharray=%273 2%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f3f4f1; --panel:#fbfcfa; --ink:#14181b; --ink-2:#4d565d; --muted:#7a8389; --rule:#dde1db; --rule-2:#e9ece7;
+  --price:#2a78d6; --vwap:#eb6834; --sup:#1b8a55; --res:#c8402c; --flip:#b87500; --struct:#6b747a;
+  --pos:#2a78d6; --neg:#eb6834; --chip-pos-bg:#e4eefb; --chip-neg-bg:#fcebe3; --alert-bg:#fff5df; --alert-rule:#e8b64a;
+  --btn:#14181b; --btn-ink:#fbfcfa; --focus:#2a78d6;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1113; --panel:#151a1d; --ink:#e9ece8; --ink-2:#aab3b8; --muted:#7c868c; --rule:#262d31; --rule-2:#1d2326;
+    --price:#3987e5; --vwap:#d95926; --sup:#37b577; --res:#ef6a50; --flip:#e0a33a; --struct:#8d979d;
+    --pos:#3987e5; --neg:#d95926; --chip-pos-bg:#16263a; --chip-neg-bg:#35201a; --alert-bg:#2e2410; --alert-rule:#b8861f;
+    --btn:#e9ece8; --btn-ink:#0e1113; --focus:#3987e5; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1113; --panel:#151a1d; --ink:#e9ece8; --ink-2:#aab3b8; --muted:#7c868c; --rule:#262d31; --rule-2:#1d2326;
+  --price:#3987e5; --vwap:#d95926; --sup:#37b577; --res:#ef6a50; --flip:#e0a33a; --struct:#8d979d;
+  --pos:#3987e5; --neg:#d95926; --chip-pos-bg:#16263a; --chip-neg-bg:#35201a; --alert-bg:#2e2410; --alert-rule:#b8861f;
+  --btn:#e9ece8; --btn-ink:#0e1113; --focus:#3987e5; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:18px 40px;display:flex;flex-direction:column;gap:16px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0;text-wrap:balance}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:10px}
+.pad{padding:16px}
+
+/* header */
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.brand .sess{color:var(--ink-2)}
+.hdr-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--ink-2);background:var(--panel)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pill.open .dot{background:var(--sup)}
+.pill.stale{border-color:var(--alert-rule);color:var(--ink)}
+.updated{font-size:12px;color:var(--muted)}
+button.refresh{font:600 13px var(--sans);background:var(--btn);color:var(--btn-ink);border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+button.refresh:disabled{opacity:.55;cursor:default}
+button:focus-visible,summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.refresh-msg{font-size:12px;color:var(--ink-2);max-width:320px}
+
+/* alert */
+.alert{display:flex;gap:12px;align-items:center;background:var(--alert-bg);border:1px solid var(--alert-rule);border-radius:10px;padding:10px 14px;font-weight:600}
+.alert .tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--alert-rule);border-radius:4px;padding:1px 6px}
+.note{color:var(--ink-2);font-size:13px}
+.err{border:1px solid var(--res);color:var(--ink);background:var(--chip-neg-bg);border-radius:10px;padding:10px 14px;font-size:13px}
+
+/* summary strip */
+.summary{display:grid;grid-template-columns:1.1fr 1.5fr 1fr 1fr;gap:12px}
+.summary .panel{padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.px-big{font-size:34px;font-weight:600;line-height:1.05;letter-spacing:-.02em}
+.chg.up{color:var(--sup)} .chg.dn{color:var(--res)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:13px;border-radius:6px;padding:3px 9px;width:fit-content}
+.chip.pos{background:var(--chip-pos-bg);color:var(--pos)}
+.chip.neg{background:var(--chip-neg-bg);color:var(--neg)}
+.lvl-name{font-weight:600}
+.lvl-px{font-size:22px;font-weight:600}
+.dist{font-size:12px;color:var(--ink-2)}
+.kv{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.kv b{color:var(--ink);font-weight:600}
+
+/* main grid */
+.main{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:12px}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:14px 16px 0}
+.card-h h2{font-size:15px;font-weight:700}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:14px;height:3px;border-radius:2px;display:inline-block}
+.sw.dash{height:0;border-top:2px dashed currentColor;width:14px}
+.chart{position:relative;padding:6px 8px 10px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:6px 8px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.12);white-space:nowrap;z-index:2}
+.tip[hidden]{display:none}
+
+/* ladder */
+.ladder{list-style:none;margin:0;padding:6px 8px 12px;display:flex;flex-direction:column;max-height:430px;overflow-y:auto}
+@media (max-width:980px){.ladder{max-height:none}}
+.ladder li{display:grid;grid-template-columns:10px 1fr auto auto;gap:10px;align-items:center;padding:7px 8px;border-bottom:1px solid var(--rule-2)}
+.ladder li:last-child{border-bottom:0}
+.ladder .mk{width:10px;height:10px;border-radius:2px}
+.ladder .nm{font-size:13px}
+.ladder .nm small{display:block;color:var(--muted);font-size:11px}
+.ladder .p{font-size:13px}
+.ladder .d{font-size:12px;color:var(--muted);min-width:52px;text-align:right}
+.ladder li.now{background:var(--chip-pos-bg);border-radius:6px;border-bottom-color:transparent}
+.ladder li.now .nm{font-weight:700}
+.ladder li.near .d{color:var(--ink);font-weight:600}
+.k-support{background:var(--sup)} .k-resistance{background:var(--res)} .k-flip{background:var(--flip)} .k-anchor{background:var(--vwap)} .k-structure{background:var(--struct)} .k-now{background:var(--price)}
+
+/* setups */
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+.sec-h h2{font-size:15px;font-weight:700}
+.setups{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}
+.setup{padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-left:4px solid var(--struct)}
+.setup.long{border-left-color:var(--sup)} .setup.short{border-left-color:var(--res)}
+.setup .top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.setup h3{font-size:14px;font-weight:700}
+.tag2{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);border:1px solid var(--rule);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.esr{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.esr div{display:flex;flex-direction:column;gap:2px}
+.esr .v{font-size:15px;font-weight:600}
+.trig{font-size:13px;color:var(--ink-2)}
+
+/* how to */
+details.panel{padding:0}
+details summary{cursor:pointer;padding:14px 16px;font-weight:700;list-style:none;display:flex;justify-content:space-between}
+details summary::after{content:"+";color:var(--muted);font-weight:500}
+details[open] summary::after{content:"–"}
+.howto{padding:0 16px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.howto p{margin:0 0 6px;max-width:62ch;color:var(--ink-2)}
+.howto h3{font-size:13px;margin-bottom:6px}
+footer{font-size:12px;color:var(--muted);max-width:90ch}
+
+@media (max-width:980px){
+  .summary{grid-template-columns:1fr 1fr}
+  .main{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  .wrap{padding-inline:16px}
+  .summary{grid-template-columns:1fr}
+  .px-big{font-size:30px}
+  .esr{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>SPY Levels</h1>
+      <span class="sess" id="sess">Loading…</span>
+    </div>
+    <div class="hdr-right">
+      <span class="pill" id="mkt"><span class="dot"></span><span id="mktTxt">Market</span></span>
+      <span class="updated" id="upd"></span>
+      <button class="refresh" id="refreshBtn" type="button" hidden>Refresh now</button>
+    </div>
+  </header>
+  <div class="refresh-msg" id="refreshMsg" hidden></div>
+
+  <div class="alert" id="alert" hidden><span class="tag">At a level</span><span id="alertTxt"></span></div>
+  <div class="note" id="closedNote" hidden></div>
+  <div class="err" id="errNote" role="status" hidden></div>
+
+  <section class="summary" aria-label="Summary">
+    <div class="panel">
+      <span class="eyebrow">SPY last</span>
+      <span class="px-big num" id="px">—</span>
+      <span class="num chg" id="chg"></span>
+      <div class="kv"><span>VWAP <b class="num" id="vwapV">—</b></span><span>Vol pace <b class="num" id="volV">—</b></span></div>
+    </div>
+    <div class="panel">
+      <span class="eyebrow">Regime</span>
+      <span class="chip" id="regChip">—</span>
+      <span class="note" id="regTxt"></span>
+      <div class="kv"><span>Gamma flip <b class="num" id="flipV">—</b></span><span>Net gamma <b class="num" id="gexV">—</b></span></div>
+    </div>
+    <div class="panel">
+      <span class="eyebrow">Next level above</span>
+      <span class="lvl-name" id="r1n">—</span>
+      <span class="lvl-px num" id="r1p">—</span>
+      <span class="dist num" id="r1d"></span>
+    </div>
+    <div class="panel">
+      <span class="eyebrow">Next level below</span>
+      <span class="lvl-name" id="s1n">—</span>
+      <span class="lvl-px num" id="s1p">—</span>
+      <span class="dist num" id="s1d"></span>
+    </div>
+  </section>
+
+  <section class="main">
+    <div class="panel">
+      <div class="card-h">
+        <h2>Price and levels</h2>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--price)"></i>SPY</span>
+          <span><i class="sw" style="background:var(--vwap)"></i>VWAP</span>
+          <span style="color:var(--sup)"><i class="sw dash"></i><span style="color:var(--ink-2)">Support</span></span>
+          <span style="color:var(--res)"><i class="sw dash"></i><span style="color:var(--ink-2)">Resistance</span></span>
+          <span style="color:var(--flip)"><i class="sw dash"></i><span style="color:var(--ink-2)">Gamma flip</span></span>
+        </div>
+      </div>
+      <div class="chart" id="pxChart"><div class="tip" id="pxTip" hidden></div></div>
+    </div>
+    <div class="panel">
+      <div class="card-h"><h2>Level ladder</h2><span class="updated">Distance from price</span></div>
+      <ul class="ladder" id="ladder"></ul>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <div class="sec-h"><h2>Setups</h2><span class="note" id="setupNote"></span></div>
+    <div class="setups" id="setups"></div>
+  </section>
+
+  <section class="panel">
+    <div class="card-h">
+      <h2>Dealer gamma by strike</h2>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--pos);height:10px;width:10px"></i>Dampens moves (pins price)</span>
+        <span><i class="sw" style="background:var(--neg);height:10px;width:10px"></i>Amplifies moves</span>
+      </div>
+    </div>
+    <div class="chart" id="gxChart"><div class="tip" id="gxTip" hidden></div></div>
+    <div class="note" id="gxNote" style="padding:0 16px 14px"></div>
+  </section>
+
+  <details class="panel" id="howto">
+    <summary>How to use this</summary>
+    <div class="howto">
+      <div>
+        <h3>Range day (price above the gamma flip)</h3>
+        <p>Dealers hedge against the move: they sell into rallies and buy into dips. Price tends to bounce between walls.</p>
+        <p>Fade the edges. Buy near support, sell near resistance, with a stop about $0.30 past the level.</p>
+      </div>
+      <div>
+        <h3>Trend day (price below the gamma flip)</h3>
+        <p>Dealers hedge with the move, which pushes it further. Levels break more easily.</p>
+        <p>Follow breaks that close past a level on at least 2x average volume. Target the next level.</p>
+      </div>
+      <div>
+        <h3>Reading the page</h3>
+        <p>The yellow banner appears when SPY is within $0.25 of a level. Vol pace compares the last 5 minutes with the session average: above 2 means a break is more likely to hold.</p>
+        <p>Walls come from open interest, so they shift overnight. Check the map each morning.</p>
+      </div>
+    </div>
+  </details>
+
+  <footer id="foot">Data: Yahoo Finance 1-minute bars and option chains. Gamma is an estimate that assumes dealers are long calls and short puts. Not financial advice.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var state = { data:null };
+  var SVGNS = "http://www.w3.org/2000/svg";
+
+  function css(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function fmt(n, d){ return (n==null||isNaN(n)) ? "—" : Number(n).toFixed(d==null?2:d); }
+  function sgn(n, d){ return (n>0?"+":"") + fmt(n,d); }
+  function el(tag, attrs, parent){
+    var e = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function kindColor(k){
+    return k==="support" ? css("--sup") : k==="resistance" ? css("--res") : k==="flip" ? css("--flip") : k==="anchor" ? css("--vwap") : css("--struct");
+  }
+  function niceDate(iso){
+    var d = new Date(iso + "T12:00:00");
+    return d.toLocaleDateString("en-US",{weekday:"short", month:"short", day:"numeric"});
+  }
+  function timeET(iso){
+    try { return new Date(iso).toLocaleTimeString("en-US",{hour:"numeric", minute:"2-digit", timeZone:"America/New_York"}) + " ET"; }
+    catch(e){ return iso; }
+  }
+  function ago(iso){
+    var sec = Math.round((Date.now() - new Date(iso).getTime())/1000);
+    if (sec < 60) return Math.max(sec,0) + " s ago";
+    var m = Math.round(sec/60);
+    if (m < 60) return m + " min ago";
+    var h = Math.round(m/60);
+    if (h < 48) return h + " h ago";
+    return Math.round(h/24) + " days ago";
+  }
+
+  /* ------------------------------------------------ header + summary */
+  function renderHeader(d){
+    $("sess").textContent = "Session " + niceDate(d.session);
+    var mkt = $("mkt"), open = d.marketOpen;
+    var ageMin = (Date.now() - new Date(d.generatedAt).getTime())/60000;
+    var stale = open && ageMin > 5;
+    mkt.className = "pill" + (open ? " open" : "") + (stale ? " stale" : "");
+    $("mktTxt").textContent = stale ? "Data is stale" : (open ? "Market open" : "Market closed");
+    $("upd").textContent = "Updated " + ago(d.generatedAt) + " (" + timeET(d.generatedAt) + ")";
+    var cn = $("closedNote");
+    if (!open){
+      cn.hidden = false;
+      cn.textContent = "Market closed. Showing the last session; levels, setups and the gamma map are ready for the next open. Live updates run every minute from 9:30 AM to 4:00 PM ET.";
+    } else cn.hidden = true;
+  }
+
+  function renderSummary(d){
+    $("px").textContent = fmt(d.price);
+    var c = $("chg");
+    if (d.change != null){
+      c.textContent = sgn(d.change) + "  (" + sgn(d.changePct) + "%) vs prior close";
+      c.className = "num chg " + (d.change >= 0 ? "up" : "dn");
+    }
+    $("vwapV").textContent = fmt(d.vwap);
+    $("volV").textContent = d.volRatio == null ? "—" : fmt(d.volRatio,1) + "x";
+    var chip = $("regChip");
+    chip.textContent = d.regime.label;
+    chip.className = "chip " + (d.regime.positive ? "pos" : "neg");
+    $("regTxt").textContent = d.regime.detail;
+    $("flipV").textContent = fmt(d.flip);
+    $("gexV").textContent = d.totalGex == null ? "—" : (d.totalGex >= 0 ? "+" : "") + Math.round(d.totalGex).toLocaleString() + "M / 1%";
+    function lvl(x, n, p, dd){
+      if (!x){ $(n).textContent = "None nearby"; $(p).textContent = "—"; $(dd).textContent = ""; return; }
+      $(n).textContent = x.name; $(p).textContent = fmt(x.px);
+      $(dd).textContent = sgn(x.dist) + " from price";
+    }
+    lvl(d.r1, "r1n", "r1p", "r1d");
+    lvl(d.s1, "s1n", "s1p", "s1d");
+    var a = $("alert");
+    if (d.alert){ a.hidden = false; $("alertTxt").textContent = d.alert.msg; } else a.hidden = true;
+  }
+
+  function shortName(n){
+    return n.replace("Opening range high","OR high").replace("Opening range low","OR low")
+            .replace("Prior day high","Prev high").replace("Prior day low","Prev low").replace("Prior close","Prev close")
+            .replace("Call wall ","Call ").replace("Put wall ","Put ").replace("Gamma flip","Flip");
+  }
+  /* ------------------------------------------------ price chart */
+  function renderPriceChart(d){
+    var box = $("pxChart"), tip = $("pxTip");
+    var old = box.querySelector("svg"); if (old) old.remove();
+    var W = Math.max(320, box.clientWidth - 16), H = W < 560 ? 340 : 380;
+    var M = {l:44, r:W < 560 ? 96 : 130, t:10, b:22}, VOLH = 54, GAP = 12;
+    var ser = d.series || [];
+    if (!ser.length) return;
+    var pw = W - M.l - M.r, ph = H - M.t - M.b - VOLH - GAP;
+    var lo = Infinity, hi = -Infinity;
+    ser.forEach(function(p){ lo = Math.min(lo, p.c, p.w||p.c); hi = Math.max(hi, p.c, p.w||p.c); });
+    var pad = Math.max(0.6, (hi-lo)*0.12);
+    var levels = (d.levels||[]).filter(function(x){ return x.px >= lo - pad*1.6 && x.px <= hi + pad*1.6; });
+    levels.forEach(function(x){ lo = Math.min(lo, x.px); hi = Math.max(hi, x.px); });
+    lo -= pad*0.4; hi += pad*0.4;
+    var n = ser.length;
+    // x domain: full session 9:30-16:00 = 390 minutes
+    function mins(t){ var a = t.split(":"); return (+a[0])*60 + (+a[1]) - 570; }
+    var X = function(t){ return M.l + (mins(t)/390)*pw; };
+    var Y = function(v){ return M.t + (hi - v)/(hi - lo)*ph; };
+    var svg = el("svg", {viewBox:"0 0 "+W+" "+H, role:"img", "aria-label":"SPY one-minute price with VWAP and key levels"}, null);
+    box.appendChild(svg);
+    var grid = css("--rule-2"), ink2 = css("--ink-2"), muted = css("--muted");
+    // y grid
+    var step = (hi-lo) > 8 ? 2 : (hi-lo) > 4 ? 1 : 0.5;
+    for (var v = Math.ceil(lo/step)*step; v <= hi; v += step){
+      el("line",{x1:M.l, x2:M.l+pw, y1:Y(v), y2:Y(v), stroke:grid, "stroke-width":1}, svg);
+      var t = el("text",{x:M.l-8, y:Y(v)+4, "text-anchor":"end", fill:muted, "font-size":11, "font-family":css("--mono")}, svg); t.textContent = v.toFixed(step<1?1:0);
+    }
+    // x ticks
+    ["09:30","10:30","11:30","12:30","13:30","14:30","15:30"].forEach(function(tk){
+      var x = X(tk);
+      el("line",{x1:x, x2:x, y1:M.t+ph, y2:M.t+ph+4, stroke:grid}, svg);
+      var tt = el("text",{x:x, y:H-6, "text-anchor":"middle", fill:muted, "font-size":11}, svg);
+      var h = +tk.split(":")[0]; tt.textContent = (h>12?h-12:h) + ":" + tk.split(":")[1];
+    });
+    // levels
+    var labels = [];
+    levels.forEach(function(x){
+      var col = kindColor(x.kind), y = Y(x.px);
+      el("line",{x1:M.l, x2:M.l+pw, y1:y, y2:y, stroke:col, "stroke-width":x.kind==="structure"?1:1.5, "stroke-dasharray":x.kind==="structure"?"2 4":"6 4", opacity:x.kind==="structure"?0.8:1}, svg);
+      labels.push({y:y, name:shortName(x.name), px:x.px.toFixed(2), col:col});
+    });
+    labels.sort(function(a,b){ return a.y-b.y; });
+    for (var i=1;i<labels.length;i++){ if (labels[i].y - labels[i-1].y < 13) labels[i].y = labels[i-1].y + 13; }
+    labels.forEach(function(L){
+      var t = el("text",{x:M.l+pw+6, y:L.y+4, fill:L.col, "font-size":W<560?10:11, "font-family":css("--mono")}, svg);
+      t.textContent = L.px + " " + L.name;
+    });
+    // vwap + price
+    var pv = "", pp = "";
+    ser.forEach(function(p, i){
+      if (p.w != null) pv += (pv?"L":"M") + X(p.t).toFixed(1) + " " + Y(p.w).toFixed(1);
+      pp += (i?"L":"M") + X(p.t).toFixed(1) + " " + Y(p.c).toFixed(1);
+    });
+    el("path",{d:pv, fill:"none", stroke:css("--vwap"), "stroke-width":2, "stroke-linejoin":"round"}, svg);
+    el("path",{d:pp, fill:"none", stroke:css("--price"), "stroke-width":2, "stroke-linejoin":"round"}, svg);
+    var last = ser[n-1];
+    el("circle",{cx:X(last.t), cy:Y(last.c), r:4, fill:css("--price"), stroke:css("--panel"), "stroke-width":2}, svg);
+    // volume
+    var vy0 = M.t + ph + GAP + VOLH, vmax = 0;
+    ser.forEach(function(p){ vmax = Math.max(vmax, p.v); });
+    var bw = Math.max(1, pw/390 - 0.4);
+    ser.forEach(function(p){
+      var h = vmax ? (p.v/vmax)*(VOLH-4) : 0;
+      el("rect",{x:X(p.t)-bw/2, y:vy0-h, width:bw, height:h, fill:css("--struct"), opacity:0.55}, svg);
+    });
+    var vl = el("text",{x:M.l-8, y:vy0-VOLH+12, "text-anchor":"end", fill:muted, "font-size":10}, svg); vl.textContent = "Vol";
+    // hover
+    var cross = el("line",{x1:0,x2:0,y1:M.t,y2:vy0, stroke:ink2, "stroke-width":1, "stroke-dasharray":"3 3", visibility:"hidden"}, svg);
+    var dot = el("circle",{r:4, fill:css("--price"), stroke:css("--panel"), "stroke-width":2, visibility:"hidden"}, svg);
+    var hit = el("rect",{x:M.l, y:M.t, width:pw, height:vy0-M.t, fill:"transparent"}, svg);
+    function move(ev){
+      var r = svg.getBoundingClientRect(), sx = (ev.clientX - r.left) * (W / r.width);
+      var m = (sx - M.l)/pw*390, best = null, bd = 1e9;
+      ser.forEach(function(p){ var dd = Math.abs(mins(p.t)-m); if (dd < bd){ bd = dd; best = p; } });
+      if (!best) return;
+      var x = X(best.t);
+      cross.setAttribute("x1",x); cross.setAttribute("x2",x); cross.setAttribute("visibility","visible");
+      dot.setAttribute("cx",x); dot.setAttribute("cy",Y(best.c)); dot.setAttribute("visibility","visible");
+      var h = +best.t.split(":")[0];
+      tip.innerHTML = "";
+      var lines = [[(h>12?h-12:h)+":"+best.t.split(":")[1]+" ET", null],["SPY", fmt(best.c)],["VWAP", fmt(best.w)],["Volume", Number(best.v).toLocaleString()]];
+      lines.forEach(function(L, i){
+        var div = document.createElement("div");
+        if (i===0){ div.style.fontWeight = "700"; div.textContent = L[0]; }
+        else { div.innerHTML = ""; var a = document.createElement("span"); a.textContent = L[0] + "  "; a.style.color = css("--muted"); var b = document.createElement("span"); b.className = "num"; b.textContent = L[1]; div.appendChild(a); div.appendChild(b); }
+        tip.appendChild(div);
+      });
+      tip.hidden = false;
+      var bx = box.getBoundingClientRect(), px = ev.clientX - bx.left + 14;
+      if (px + 150 > bx.width) px = ev.clientX - bx.left - 160;
+      tip.style.left = px + "px"; tip.style.top = (ev.clientY - bx.top - 10) + "px";
+    }
+    function leave(){ tip.hidden = true; cross.setAttribute("visibility","hidden"); dot.setAttribute("visibility","hidden"); }
+    hit.addEventListener("pointermove", move);
+    hit.addEventListener("pointerleave", leave);
+  }
+
+  /* ------------------------------------------------ ladder */
+  function renderLadder(d){
+    var ul = $("ladder"); ul.innerHTML = "";
+    var rows = (d.levels||[]).slice();
+    rows.push({name:"SPY now", px:d.price, kind:"now", note:"Last price", dist:0, now:true});
+    rows.sort(function(a,b){ return b.px - a.px || (a.now?-1:1); });
+    rows.forEach(function(x){
+      var li = document.createElement("li");
+      if (x.now) li.className = "now";
+      else if (Math.abs(x.dist) <= 0.5) li.className = "near";
+      var mk = document.createElement("span"); mk.className = "mk k-" + x.kind;
+      var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = x.name;
+      var sm = document.createElement("small"); sm.textContent = x.note || ""; nm.appendChild(sm);
+      var p = document.createElement("span"); p.className = "p num"; p.textContent = fmt(x.px);
+      var dd = document.createElement("span"); dd.className = "d num"; dd.textContent = x.now ? "" : sgn(x.dist);
+      li.appendChild(mk); li.appendChild(nm); li.appendChild(p); li.appendChild(dd);
+      ul.appendChild(li);
+    });
+  }
+
+  /* ------------------------------------------------ setups */
+  function renderSetups(d){
+    var box = $("setups"); box.innerHTML = "";
+    $("setupNote").textContent = d.regime.positive ? "Range day: fades first, breakouts need volume." : "Trend day: follow breaks, avoid fading.";
+    (d.setups||[]).forEach(function(s){
+      var c = document.createElement("div"); c.className = "panel setup " + s.side;
+      var top = document.createElement("div"); top.className = "top";
+      var h = document.createElement("h3"); h.textContent = s.title;
+      var tg = document.createElement("span"); tg.className = "tag2"; tg.textContent = (s.kind === "fade" ? "Fade" : "Break") + " · " + (s.side === "long" ? "Long" : "Short");
+      top.appendChild(h); top.appendChild(tg); c.appendChild(top);
+      var g = document.createElement("div"); g.className = "esr";
+      [["Entry", fmt(s.entry)],["Stop", fmt(s.stop)],["Target", fmt(s.target)],["Reward : risk", s.rr==null?"—":fmt(s.rr,1)+" : 1"]].forEach(function(p){
+        var dv = document.createElement("div");
+        var a = document.createElement("span"); a.className = "eyebrow"; a.textContent = p[0];
+        var b = document.createElement("span"); b.className = "v num"; b.textContent = p[1];
+        dv.appendChild(a); dv.appendChild(b); g.appendChild(dv);
+      });
+      c.appendChild(g);
+      var tr = document.createElement("div"); tr.className = "trig"; tr.textContent = "Trigger: " + s.trigger + ". Risk $" + fmt(s.risk) + " per share, " + "$" + Math.round(s.risk*100) + " per 100 shares.";
+      c.appendChild(tr);
+      box.appendChild(c);
+    });
+    if (!(d.setups||[]).length){ var p = document.createElement("p"); p.className = "note"; p.textContent = "No clean setups near price right now."; box.appendChild(p); }
+  }
+
+  /* ------------------------------------------------ gamma chart */
+  function renderGamma(d){
+    var box = $("gxChart"), tip = $("gxTip");
+    var old = box.querySelector("svg"); if (old) old.remove();
+    var gx = d.gex || []; if (!gx.length) return;
+    var W = Math.max(320, box.clientWidth - 16), H = 260, M = {l:56, r:12, t:18, b:26};
+    var pw = W - M.l - M.r, ph = H - M.t - M.b;
+    var kmin = gx[0].k, kmax = gx[gx.length-1].k;
+    var vmax = 0; gx.forEach(function(g){ vmax = Math.max(vmax, Math.abs(g.net)); });
+    vmax = vmax * 1.1 || 1;
+    var X = function(k){ return M.l + (k - kmin + 0.5)/(kmax - kmin + 1)*pw; };
+    var Y = function(v){ return M.t + (vmax - v)/(2*vmax)*ph; };
+    var bw = Math.max(2, pw/(kmax-kmin+1) - 2);
+    var svg = el("svg",{viewBox:"0 0 "+W+" "+H, role:"img", "aria-label":"Net dealer gamma by strike"}, null);
+    box.appendChild(svg);
+    var muted = css("--muted"), grid = css("--rule-2");
+    [-vmax/1.1, -vmax/2.2, 0, vmax/2.2, vmax/1.1].forEach(function(v){
+      el("line",{x1:M.l, x2:M.l+pw, y1:Y(v), y2:Y(v), stroke:v===0?css("--ink-2"):grid, "stroke-width":1}, svg);
+      var t = el("text",{x:M.l-8, y:Y(v)+4, "text-anchor":"end", fill:muted, "font-size":10, "font-family":css("--mono")}, svg);
+      t.textContent = (v>0?"+":"") + Math.round(v) + "M";
+    });
+    var every = pw/(kmax-kmin+1) < 22 ? 5 : 2;
+    gx.forEach(function(g){
+      var x = X(g.k), y0 = Y(0), y1 = Y(g.net);
+      var r = el("rect",{x:x-bw/2, y:Math.min(y0,y1), width:bw, height:Math.max(1,Math.abs(y1-y0)), fill:g.net>=0?css("--pos"):css("--neg"), rx:Math.min(2,bw/3)}, svg);
+      r.addEventListener("pointerenter", function(ev){
+        tip.innerHTML = "";
+        [["Strike " + g.k, ""],["Net gamma", (g.net>=0?"+":"") + g.net + "M per 1%"],["Open interest", Number(g.oi).toLocaleString()]].forEach(function(L,i){
+          var dv = document.createElement("div");
+          if (i===0){ dv.style.fontWeight="700"; dv.textContent = L[0]; } else { var a=document.createElement("span"); a.style.color=muted; a.textContent=L[0]+"  "; var b=document.createElement("span"); b.className="num"; b.textContent=L[1]; dv.appendChild(a); dv.appendChild(b); }
+          tip.appendChild(dv);
+        });
+        tip.hidden = false;
+        var bx = box.getBoundingClientRect(), px = ev.clientX - bx.left + 12;
+        if (px + 170 > bx.width) px = ev.clientX - bx.left - 180;
+        tip.style.left = px + "px"; tip.style.top = (ev.clientY - bx.top - 10) + "px";
+      });
+      r.addEventListener("pointerleave", function(){ tip.hidden = true; });
+      if (g.k % every === 0){
+        var t = el("text",{x:x, y:H-8, "text-anchor":"middle", fill:muted, "font-size":10, "font-family":css("--mono")}, svg); t.textContent = g.k;
+      }
+    });
+    function vline(v, col, dash, label, anchorRight){
+      if (v == null || v < kmin-0.5 || v > kmax+0.5) return;
+      var x = X(v);
+      el("line",{x1:x, x2:x, y1:M.t-4, y2:M.t+ph, stroke:col, "stroke-width":1.5, "stroke-dasharray":dash||""}, svg);
+      var t = el("text",{x:anchorRight?x-5:x+5, y:M.t+6, "text-anchor":anchorRight?"end":"start", fill:col, "font-size":11, "font-weight":600}, svg); t.textContent = label;
+    }
+    var flipLeft = d.flip != null && d.flip < d.price;
+    vline(d.price, css("--ink"), "", "SPY " + fmt(d.price), !flipLeft);
+    vline(d.flip, css("--flip"), "5 4", "Flip " + fmt(d.flip), flipLeft);
+    var ex = d.expiries || [];
+    $("gxNote").textContent = "Open interest from " + ex.length + " expiries (" + (ex.length ? niceDate(ex[0]) + " to " + niceDate(ex[ex.length-1]) : "n/a") + "). Tall blue bars are the walls where price tends to stall. Orange below the flip is where selling can speed up.";
+  }
+
+  function renderAll(){
+    var d = state.data; if (!d) return;
+    renderHeader(d); renderSummary(d); renderPriceChart(d); renderLadder(d); renderSetups(d); renderGamma(d);
+    if (d.source) $("foot").textContent = "Data: " + d.source + " Option data as of " + (d.chainAt ? timeET(d.chainAt) : "n/a") + ". Not financial advice.";
+  }
+
+  /* ------------------------------------------------ live data */
+  function setMsg(t){ var m = $("refreshMsg"); m.hidden = !t; m.textContent = t || ""; }
+  function showStatus(st){
+    var e = $("errNote");
+    if (st && st.ok === false){
+      e.hidden = false;
+      e.textContent = state.data
+        ? "The last update failed (" + st.error + "). Showing data from " + timeET(state.data.generatedAt) + ". The app retries automatically."
+        : "Waiting for the first data pull: " + st.error;
+    } else e.hidden = true;
+  }
+  var lastStamp = null, pollTimer = null;
+  function poll(){
+    clearTimeout(pollTimer);
+    fetch("api/levels", {cache:"no-store", credentials:"same-origin"}).then(function(r){
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function(d){
+      if (d && d.series){
+        if (d.generatedAt !== lastStamp){ lastStamp = d.generatedAt; state.data = d; renderAll(); }
+        else renderHeader(d);
+      }
+      showStatus(d && d.status);
+    }).catch(function(err){
+      showStatus({ok:false, error:"cannot reach the app (" + err.message + ")"});
+    }).then(function(){
+      var open = state.data && state.data.marketOpen;
+      pollTimer = setTimeout(poll, document.hidden ? 120000 : (open ? 15000 : 60000));
+    });
+  }
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) poll(); });
+
+  $("refreshBtn").hidden = false;
+  $("refreshBtn").addEventListener("click", function(){
+    var btn = this;
+    btn.disabled = true; btn.textContent = "Refreshing…"; setMsg("");
+    fetch("api/refresh", {method:"POST", credentials:"same-origin"}).then(function(r){
+      if (r.status === 429){ setMsg("Refreshed recently. Try again in 30 seconds."); return; }
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      setMsg("Pulling fresh data. The page updates in a few seconds.");
+      setTimeout(poll, 4000); setTimeout(poll, 12000);
+    }).catch(function(err){
+      setMsg("Refresh failed: " + err.message + ". The app keeps updating on its own.");
+    }).then(function(){
+      setTimeout(function(){ btn.disabled = false; btn.textContent = "Refresh now"; setMsg(""); }, 15000);
+    });
+  });
+
+  /* ------------------------------------------------ boot */
+  var rt;
+  function onResize(){ clearTimeout(rt); rt = setTimeout(function(){ if (state.data){ renderPriceChart(state.data); renderGamma(state.data); } }, 120); }
+  window.addEventListener("resize", onResize);
+  try { window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderAll); } catch(e){}
+  setInterval(function(){ if (state.data) renderHeader(state.data); }, 10000);
+  poll();
+})();
+</script>
+</body>
+</html>
